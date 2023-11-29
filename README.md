@@ -169,4 +169,118 @@ my_resource = SomeResource(name="example", api_key=api_key)
 
 ## Set service resource info
 
-There are couple parameters that can be changed using Pulumi config
+There are couple parameters that can be changed using Pulumi config or default will be used:
+
+```
+location = config.get("location") or "West Europe"
+res_group = config.get("resource_group") or "test_group"
+vm_size = config.get("vm_size") or "Standard_D2_v2"
+node_count = config.get("node_count") or 2
+env = config.get("environment") or "Development"
+```
+
+To set each of the config params use:
+
+```
+pulumi config set location <location_name>
+```
+
+In case you wan't to use already existing resource group please advise [link](https://www.pulumi.com/ai/answers/vL7zWqGtZqQHwJBLd4MnUC/accessing-existing-azure-resource-group). It is recommended to use new resource group or use GET function to fetch already existing resource group.
+
+## Results
+
+On end of pulumi up command depending on the time but it can take up to 10 minutes the resources are ready to use.
+
+Notice that on end of the pulumi create/deploy process there are **export** commands that will enable you to access information from resource creation.
+
+This is important in order to setup you're **kubectl** config.
+
+To see pulumi output use:
+
+```
+pulumi stack output kubeConfig
+pulumi stack output clientCertificate
+```
+
+To confirm successfull operation you can navigate to Azure Portal and under specified resource group you should find newly created service and as first step you can use:
+
+```
+pulumi stack output kubeConfig --show-secrets
+```
+
+or you can output it to yaml file:
+
+```
+pulumi stack output kubeConfig --show-secrets > kubeConfig.yaml
+```
+
+This should look something like this:
+
+```
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: 
+    server: https://hcp.westeurope..io:443
+  name: testAKSCluster156d878
+contexts:
+- context:
+    cluster: testAKSCluster156d878
+    user: clusterUser_test-group_testAKSCluster156d878
+  name: testAKSCluster156d878
+current-context: testAKSCluster156d878
+kind: Config
+preferences: {}
+users:
+- name: clusterUser_test-group_testAKSCluster156d878
+  user:
+    client-certificate-data: 
+    client-key-data: 
+    token: 
+```
+
+
+
+## Update kubectl info
+
+When you have you're yaml file ready you can use it to connect kubectl
+
+```
+export KUBECONFIG=./kubeconfig.yaml
+```
+
+In order to run kubectl (install kubectl from [here](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)) make sure to install suitable distribution.
+
+All is left is to run
+
+```
+kubectl get pods
+```
+
+Output should be something like:
+
+```
+NAME                              STATUS   ROLES   AGE   VERSION
+aks-default-27290676-vmss000000   Ready    agent   37m   v1.26.6
+aks-default-27290676-vmss000001   Ready    agent   37m   v1.26.6
+```
+
+You have already running two running pods which are AKS cluster internal components and part of the infrastructure. You can read more [here](https://learn.microsoft.com/en-us/azure/aks/concepts-clusters-workloads).
+
+## Destroy
+
+On the end you can use
+
+```
+pulumi destroy
+```
+
+to delete the created resources under the current stack. Please note that you will be prompted for confirmation. Additionally please take care when deleting resouce groups if some other resources are deployed under the resource group this could result in pulumi destroy failure. Then it will be for the best for leftover resources and delete them manually.
+
+and to completely remove the created stack
+
+```
+pulumi stack rm <stack_name>
+```
+
+Destroy process can take up to couple of minutes.
