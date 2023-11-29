@@ -1,0 +1,6 @@
+name: py-pulumi-deploy-azure-aks-service
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: Deploy Azure AKS service
